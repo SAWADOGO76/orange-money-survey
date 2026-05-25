@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collecte de Données - Orange Money Yatenga</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="sidebar-layout">
+        <!-- Barre latérale -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <div class="orange-badge">OM</div>
+                <span class="workspace-title">OrangeSurvey</span>
+            </div>
+            <div class="sidebar-menu">
+                <a href="#" class="menu-item active" id="btn-show-form">📝 Formulaire Collecte</a>
+                <button type="button" class="menu-item" id="btn-download-csv">📥 Télécharger le CSV</button>
+                <!-- NOUVEAU BOUTON -->
+                <button type="button" class="menu-item" id="btn-toggle-table">📊 Données collectées</button>
+            </div>
+            <div class="sidebar-footer">
+                <p>Total collecté : <strong id="counter">0</strong></p>
+            </div>
+        </nav>
+
+        <!-- Contenu Principal -->
+        <main class="main-content">
+            <header class="top-header">
+                <h1 id="main-title">Étude d'Adoption Orange Money</h1>
+                <p>Région du Nord - Ouahigouya</p>
+            </header>
+            
+            <section class="content-body">
+                
+                <!-- ZONE FORMULAIRE -->
+                <form id="om-survey-form">
+                    <!-- SECTION 1 : PROFIL SOCIO-DÉMOGRAPHIQUE -->
+                    <div class="form-section">
+                        <h2>1. Profil Socio-Démographique</h2>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Sexe</label>
+                                <select id="sexe" required>
+                                    <option value="" disabled selected>Choisir...</option>
+                                    <option value="Féminin">Féminin</option>
+                                    <option value="Masculin">Masculin</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Catégorie d'Âge (age_cat)</label>
+                                <select id="age_cat" required>
+                                    <option value="" disabled selected>Choisir...</option>
+                                    <option value="18-25ans">18-25 ans</option>
+                                    <option value="26-35ans">26-35 ans</option>
+                                    <option value="36-45ans">36-45 ans</option>
+                                    <option value="46-55ans">46-55 ans</option>
+                                    <option value="56ans+">56 ans +</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Niveau d'instruction</label>
+                                <select id="instruction" required>
+                                    <option value="" disabled selected>Choisir...</option>
+                                    <option value="aucun">Aucun</option>
+                                    <option value="primaire">Primaire</option>
+                                    <option value="secondaire">Secondaire</option>
+                                    <option value="supérieur">Supérieur</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Profession</label>
+                                <select id="profession" required>
+                                    <option value="" disabled selected>Choisir...</option>
+                                    <option value="commerçant">Commerçant</option>
+                                    <option value="agriculteur/éleveur">Agriculteur / Éleveur</option>
+                                    <option value="sans emploi/etudiant">Sans emploi / Étudiant</option>
+                                    <option value="fonctionnaire">Fonctionnaire</option>
+                                    <option value="artisan/informel">Artisan / Informel</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Catégorie de Revenu (revenu_cat en FCFA)</label>
+                                <select id="revenu_cat" required>
+                                    <option value="" disabled selected>Choisir...</option>
+                                    <option value="<50 000">&lt; 50 000</option>
+                                    <option value="50-100 000">50 - 100 000</option>
+                                    <option value="100-200 000">100 - 200 000</option>
+                                    <option value=">200 000">&gt; 200 000</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Localisation</label>
+                                <select id="localisation" required>
+                                    <option value="" disabled selected>Choisir...</option>
+                                    <option value="village du yatenga">Village du Yatenga</option>
+                                    <option value="centre-ville Ouahigouya">Centre-ville Ouahigouya</option>
+                                    <option value="périphérie urbaine">Périphérie urbaine</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 2 : USAGE TECHNOLOGIQUE -->
+                    <div class="form-section">
+                        <h2>2. Équipement et Usage Orange Money</h2>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Type de Téléphone</label>
+                                <select id="telephone" required>
+                                    <option value="" disabled selected>Choisir...</option>
+                                    <option value="téléphone basique">Téléphone basique (Torch)</option>
+                                    <option value="smartphone basique">Smartphone basique</option>
+                                    <option value="smartphone récent">Smartphone récent</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Utilisation globale d'Orange Money (Y_utilisation)</label>
+                                <select id="y_utilisation" required>
+                                    <option value="" disabled selected>Choisir...</option>
+                                    <option value="1">1 (Utilisateur)</option>
+                                    <option value="0">0 (Non-utilisateur)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Fréquence d'utilisation</label>
+                                <select id="frequence" required>
+                                    <option value="" disabled selected>Choisir...</option>
+                                    <option value="Quotidienne">Quotidienne</option>
+                                    <option value="Hebdomadaire">Hebdomadaire</option>
+                                    <option value="Mensuelle">Mensuelle</option>
+                                    <option value="Occasionnelle">Occasionnelle</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 3 : VARIABLES LIKERT -->
+                    <div class="form-section">
+                        <h2>3. Évaluation des Facteurs (Modalités de 1 à 5)</h2>
+                        <div class="likert-grid">
+                            <div class="likert-row">
+                                <span class="likert-label"><strong>X1_utilité :</strong> Utilité perçue du service</span>
+                                <input type="number" id="x1" min="1" max="5" placeholder="1-5" required>
+                            </div>
+                            <div class="likert-row">
+                                <span class="likert-label"><strong>X2_facilité :</strong> Facilité d'utilisation</span>
+                                <input type="number" id="x2" min="1" max="5" placeholder="1-5" required>
+                            </div>
+                            <div class="likert-row">
+                                <span class="likert-label"><strong>X3_confiance :</strong> Sécurité et confiance</span>
+                                <input type="number" id="x3" min="1" max="5" placeholder="1-5" required>
+                            </div>
+                            <div class="likert-row">
+                                <span class="likert-label"><strong>X4_influence :</strong> Pression sociale / entourage</span>
+                                <input type="number" id="x4" min="1" max="5" placeholder="1-5" required>
+                            </div>
+                            <div class="likert-row">
+                                <span class="likert-label"><strong>X5_cout :</strong> Grille tarifaire / Frais de retrait</span>
+                                <input type="number" id="x5" min="1" max="5" placeholder="1-5" required>
+                            </div>
+                            <div class="likert-row">
+                                <span class="likert-label"><strong>X6_conditions :</strong> Accessibilité des agences/réseau</span>
+                                <input type="number" id="x6" min="1" max="5" placeholder="1-5" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 4 : SUGGESTIONS -->
+                    <div class="form-section">
+                        <h2>4. Recommandations & Suggestions du Client</h2>
+                        <div class="form-group">
+                            <label for="suggestions">Commentaires libres ou propositions d'amélioration :</label>
+                            <textarea id="suggestions" rows="4" placeholder="Saisir ici les remarques textuelles du client..."></textarea>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-submit">Valider et Enregistrer l'Entrée</button>
+                </form>
+   <!-- Le tableau est caché par défaut grâce à la classe "hidden" -->
+                <div class="form-section table-section hidden" id="table-view-section">
+                    <h2>📊 Données collectées</h2>
+                    <div class="table-responsive">
+                        <table id="data-preview-table">
+                            <thead>
+                                <tr>
+                                    <th>Sexe</th>
+                                    <th>Âge</th>
+                                    <th>Instruction</th>
+                                    <th>Profession</th>
+                                    <th>Localisation</th>
+                                    <th>Utilisation (Y)</th>
+                                    <th>Utilité (X1)</th>
+                                    <th>Facilité (X2)</th>
+                                    <th>Confiance (X3)</th>
+                                    <th>Influence (X4)</th>
+                                    <th>Coût (X5)</th>
+                                    <th>Conditions (X6)</th>
+                                    <th>Recommandations</th>
+                                </tr>
+                            </thead>
+                            <!-- C'est cette balise 'table-body' cruciale qui manquait pour l'injection du script -->
+                            <tbody id="table-body">
+                                <!-- Les lignes de données seront injectées ici par le script.js -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
