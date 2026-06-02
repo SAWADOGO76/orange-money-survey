@@ -1,4 +1,107 @@
-<div class="form-group">
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collecte de Données - Orange Money Yatenga</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="sidebar-layout">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <div class="orange-badge">OM</div>
+                <span class="workspace-title">OrangeSurvey</span>
+            </div>
+            <div class="sidebar-menu">
+                <a href="#" class="menu-item active" id="btn-show-form">📝 Formulaire Collecte</a>
+                <button type="button" class="menu-item" id="btn-toggle-table">📊 Données collectées</button>
+                <button type="button" class="menu-item" id="btn-download-csv">📥 Télécharger le CSV</button>
+            </div>
+            <div class="sidebar-footer">
+                <p>Total collecté : <strong id="counter">0</strong></p>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            <header class="top-header">
+                <h1 id="main-title">Étude d'Adoption Orange Money</h1>
+                <p>Région du Nord - Ouahigouya</p>
+            </header>
+            
+            <section class="content-body">
+                
+                <form id="om-survey-form">
+                    <div class="form-section" id="form-section-container">
+                        <h2>1. Profil Socio-Démographique</h2>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Sexe</label>
+                                <select id="sexe" name="sexe" required>
+                                    <option value="" disabled selected>Choisir...</option>
+                                    <option value="Féminin">Féminin</option>
+                                    <option value="Masculin">Masculin</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Catégorie d'Âge (age_cat)</label>
+                                <select id="age_cat" name="age_cat" required>
+                                    <option value="" disabled selected>Choisir...</option>
+                                    <option value="18-25ans">18-25 ans</option>
+                                    <option value="26-35ans">26-35 ans</option>
+                                    <option value="36-45ans">36-45 ans</option>
+                                    <option value="46-55ans">46-55 ans</option>
+                                    <option value="56ans+">56 ans +</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Niveau d'instruction</label>
+                                <select id="instruction" name="instruction" required>
+                                    <option value="" disabled selected>Choisir...</option>
+                                    <option value="aucun">Aucun</option>
+                                    <option value="primaire">Primaire</option>
+                                    <option value="secondaire">Secondaire</option>
+                                    <option value="supérieur">Supérieur</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Profession</label>
+                                <select id="profession" name="profession" required>
+                                    <option value="" disabled selected>Choisir...</option>
+                                    <option value="commerçant">Commerçant</option>
+                                    <option value="agriculteur/éleveur">Agriculteur / Éleveur</option>
+                                    <option value="sans emploi/etudiant">Sans emploi / Étudiant</option>
+                                    <option value="fonctionnaire">Fonctionnaire</option>
+                                    <option value="menagère">Ménagère</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Catégorie de Revenu (revenu_cat en FCFA)</label>
+                                <select id="revenu_cat" name="revenu_cat" required>
+                                    <option value="" disabled selected>Choisir...</option>
+                                    <option value="<50 000">&lt; 50 000</option>
+                                    <option value="50-100 000">50 - 100 000</option>
+                                    <option value="100-200 000">100 - 200 000</option>
+                                    <option value=">200 000">&gt; 200 000</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Localisation</label>
+                                <select id="localisation" name="localisation" required>
+                                    <option value="" disabled selected>Choisir...</option>
+                                    <option value="village du yatenga">Village du Yatenga</option>
+                                    <option value="centre-ville Ouahigouya">Centre-ville Ouahigouya</option>
+                                    <option value="périphérie urbaine">Périphérie urbaine</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h2>2. Équipement et Usage Orange Money</h2>
+                        <div class="form-grid">
+                            <div class="form-group">
                                 <label>Type de Téléphone</label>
                                 <select id="telephone" name="telephone" required>
                                     <option value="" disabled selected>Choisir...</option>
@@ -80,6 +183,7 @@
                                     <th>Âge</th>
                                     <th>Instruction</th>
                                     <th>Profession</th>
+                                    <th>Revenu</th>
                                     <th>Localisation</th>
                                     <th>Téléphone</th>
                                     <th>Utilisation (Y)</th>
