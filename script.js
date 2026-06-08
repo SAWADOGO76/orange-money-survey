@@ -53,8 +53,12 @@ surveyForm.addEventListener('submit', function(e) {
 });
 
 // 2. FONCTION : Ajouter dynamiquement une ligne au tableau HTML dans l'ordre des variables
-function appendRowToTable(data) {
+function appendRowToTable(data, index) {
     const row = document.createElement('tr');
+    // On lui donne un identifiant unique basé sur son index dans le tableau local
+    row.id = `row-${index}`; 
+    
+    const cleanSuggestions = data.suggestions.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     
     row.innerHTML = `
         <td>${data.sexe}</td>
@@ -64,17 +68,20 @@ function appendRowToTable(data) {
         <td>${data.revenu_cat}</td>
         <td>${data.localisation}</td>
         <td>${data.telephone}</td>
-        <td><strong>${data.y_utilisation}</strong></td>
+        <td><span class="badge-${data.y_utilisation}">${data.y_utilisation}</span></td>
         <td>${data.frequence}</td>
-        <td>${data.x1}</td>
-        <td>${data.x2}</td>
-        <td>${data.x3}</td>
-        <td>${data.x4}</td>
-        <td>${data.x5}</td>
-        <td>${data.x6}</td>
-        <td>${data.suggestions}</td>
+        <td>${data.x1}/5</td>
+        <td>${data.x2}/5</td>
+        <td>${data.x3}/5</td>
+        <td>${data.x4}/5</td>
+        <td>${data.x5}/5</td>
+        <td>${data.x6}/5</td>
+        <td class="text-truncate" title="${cleanSuggestions}">${cleanSuggestions}</td>
+        <td>
+            <button type="button" class="btn-action btn-edit" onclick="editRow(${index})">✏️</button>
+            <button type="button" class="btn-action btn-delete" onclick="deleteRow(${index})">❌</button>
+        </td>
     `;
-    
     tableBody.appendChild(row);
 }
 
