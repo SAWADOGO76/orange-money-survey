@@ -1,4 +1,4 @@
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/xxxx/exec"; // METS TON URL GOOGLE APPS SCRIPT ICI
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwqym7w-sgurKNmg0ctorgUI1HWVsT9ef1ZSy8QYDMLPw7cSfKtrPFQotId1GunaxOxSw/exec"; // METS TON URL GOOGLE APPS SCRIPT ICI
 
 let localDatabase = [];
 
