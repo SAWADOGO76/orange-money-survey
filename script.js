@@ -1,10 +1,8 @@
-// URL de ton API Google Apps Script (Remplace par ton URL finale "Déployer en tant qu'application Web")
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/xxxx/exec"; 
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/xxxx/exec"; // METS TON URL GOOGLE APPS SCRIPT ICI
 
-// Stockage local des données collectées pendant la session
 let localDatabase = [];
 
-// Sélection des éléments du DOM
+// Éléments du DOM
 const surveyForm = document.getElementById('om-survey-form');
 const tableBody = document.getElementById('table-body');
 const counterDisplay = document.getElementById('counter');
@@ -13,11 +11,10 @@ const btnToggleTable = document.getElementById('btn-toggle-table');
 const btnShowForm = document.getElementById('btn-show-form');
 const btnDownloadCsv = document.getElementById('btn-download-csv');
 
-// 1. ÉVÉNEMENT : Soumission du formulaire
+// Soumission du formulaire
 surveyForm.addEventListener('submit', function(e) {
-    e.preventDefault(); // Empêche le rechargement de la page
+    e.preventDefault();
 
-    // Création de l'objet contenant toutes les réponses en respectant tes variables
     const formData = {
         sexe: document.getElementById('sexe').value,
         age_cat: document.getElementById('age_cat').value,
@@ -34,29 +31,21 @@ surveyForm.addEventListener('submit', function(e) {
         x4: document.getElementById('x4').value,
         x5: document.getElementById('x5').value,
         x6: document.getElementById('x6').value,
-        suggestions: document.getElementById('suggestions').value
+        suggestions: document.getElementById('suggestions').value.trim() || "Aucune"
     };
 
-    // Ajout dans notre tableau local de session
     localDatabase.push(formData);
-
-    // Mise à jour de l'interface visuelle (Tableau et Compteur)
-    appendRowToTable(formData);
-    updateCounter();
-
-    // ENVOI SÉCURISÉ VERS GOOGLE SHEETS
+    refreshTable();
     sendDataToGoogleSheets(formData);
 
-    // Réinitialisation du formulaire pour le client suivant
     surveyForm.reset();
     alert("Entrée enregistrée avec succès !");
 });
 
-// 2. FONCTION : Ajouter dynamiquement une ligne au tableau HTML dans l'ordre des variables
+// Génération d'une ligne dans le tableau avec les boutons d'action
 function appendRowToTable(data, index) {
     const row = document.createElement('tr');
-    // On lui donne un identifiant unique basé sur son index dans le tableau local
-    row.id = `row-${index}`; 
+    row.id = `row-${index}`;
     
     const cleanSuggestions = data.suggestions.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     
@@ -68,7 +57,7 @@ function appendRowToTable(data, index) {
         <td>${data.revenu_cat}</td>
         <td>${data.localisation}</td>
         <td>${data.telephone}</td>
-        <td><span class="badge-${data.y_utilisation}">${data.y_utilisation}</span></td>
+        <td><strong>${data.y_utilisation}</strong></td>
         <td>${data.frequence}</td>
         <td>${data.x1}/5</td>
         <td>${data.x2}/5</td>
@@ -78,122 +67,34 @@ function appendRowToTable(data, index) {
         <td>${data.x6}/5</td>
         <td class="text-truncate" title="${cleanSuggestions}">${cleanSuggestions}</td>
         <td>
-            <button type="button" class="btn-action btn-edit" onclick="editRow(${index})">✏️</button>
-            <button type="button" class="btn-action btn-delete" onclick="deleteRow(${index})">❌</button>
+            <button type="button" style="background:none; border:none; cursor:pointer; font-size:16px;" onclick="editRow(${index})">✏️</button>
+            <button type="button" style="background:none; border:none; cursor:pointer; font-size:16px;" onclick="deleteRow(${index})">❌</button>
         </td>
     `;
     tableBody.appendChild(row);
 }
 
-// 3. FONCTION : Mettre à jour le compteur de la barre latérale
-function updateCounter() {
+// Rafraîchir l'affichage complet du tableau
+function refreshTable() {
+    tableBody.innerHTML = "";
+    localDatabase.forEach((data, index) => {
+        appendRowToTable(data, index);
+    });
     counterDisplay.textContent = localDatabase.length;
 }
 
-// Fonction pour redessiner entièrement le tableau quand une donnée change
-function refreshTable() {
-    tableBody.innerHTML = ""; // On vide le tableau visuel
-    localDatabase.forEach((data, index) => {
-        appendRowToTable(data, index); // On recrée chaque ligne avec son nouvel index
-    });
-    updateCounter(); // On recalcule le total
-}
-
-// Fonction pour redessiner entièrement le tableau quand une donnée change
-function refreshTable() {
-    tableBody.innerHTML = ""; // On vide le tableau visuel
-    localDatabase.forEach((data, index) => {
-        appendRowToTable(data, index); // On recrée chaque ligne avec son nouvel index
-    });
-    updateCounter(); // On recalcule le total
-}
-
-// 4. ACTION : Afficher / Masquer le tableau des données
-btnToggleTable.addEventListener('click', function() {
-    tableViewSection.classList.remove('hidden');
-    surveyForm.classList.add('hidden');
-    btnToggleTable.classList.add('active');
-    btnShowForm.classList.remove('active');
-});
-
-btnShowForm.addEventListener('click', function(e) {
-    e.preventDefault();
-    surveyForm.classList.remove('hidden');
-    tableViewSection.classList.add('hidden');
-    btnShowForm.classList.add('active');
-    btnToggleTable.classList.remove('active');
-});
-
-// 5. FONCTION : Envoi asynchrone des données vers Google Sheets via Fetch API
-function sendDataToGoogleSheets(data) {
-    // On utilise URLSearchParams pour envoyer les variables au format classique de formulaire (POST/GET)
-    const urlParams = new URLSearchParams(data);
-
-    fetch(GOOGLE_SCRIPT_URL, {
-        method: 'POST',
-        mode: 'no-cors', // Évite les blocages de sécurité liés au Cross-Origin (CORS)
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        body: urlParams.toString()
-    })
-    .then(() => console.log("Données envoyées avec succès à Google Sheets."))
-    .catch(error => console.error("Erreur lors de l'envoi Google Sheets : ", error));
-}
-
-// 6. ACTION : Génération et téléchargement instantané du fichier CSV
-btnDownloadCsv.addEventListener('click', function() {
-    if (localDatabase.length === 0) {
-        alert("Aucune donnée à télécharger pour le moment.");
-        return;
-    }
-
-    // Définition des en-têtes du fichier CSV (les noms de tes colonnes sous Excel/R)
-    const headers = ["sexe", "age_cat", "instruction", "profession", "revenu_cat", "localisation", "telephone", "y_utilisation", "frequence", "x1", "x2", "x3", "x4", "x5", "x6", "suggestions"];
-    
-    // Construction des lignes de données (séparateur point-virgule pour une compatibilité Excel française)
-    const csvRows = [];
-    csvRows.push(headers.join(';'));
-
-    for (const row of localDatabase) {
-        const values = headers.map(header => {
-            // Échapper les guillemets et nettoyer le texte pour éviter de casser le CSV
-            let value = row[header] ? row[header].toString() : "";
-            value = value.replace(/"/g, '""'); 
-            return `"${value}"`;
-        });
-        csvRows.push(values.join(';'));
-    }
-
-    const csvContent = "\uFEFF" + csvRows.join('\n'); // \uFEFF gère correctement les accents (UTF-8) sous Excel
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    
-    // Téléchargement automatique
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `Donnies_OrangeMoney_Yatenga_${new Date().toISOString().slice(0,10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-});
-// FONCTION POUR SUPPRIMER UNE LIGNE
+// Action de suppression
 function deleteRow(index) {
-    if (confirm("Êtes-vous sûr de vouloir supprimer cette ligne de données ?")) {
-        // Supprime 1 élément à partir de la position 'index' dans le tableau JavaScript
-        localDatabase.splice(index, 1); 
-        
-        // On rafraîchit l'affichage pour recalculer les positions et le compteur
+    if (confirm("Voulez-vous vraiment supprimer cette ligne ?")) {
+        localDatabase.splice(index, 1);
         refreshTable();
-        alert("Ligne supprimée localement.");
     }
 }
 
-// FONCTION POUR MODIFIER UNE LIGNE
+// Action de modification
 function editRow(index) {
     const data = localDatabase[index];
     
-    // 1. On remet les valeurs de la ligne dans le formulaire pour pouvoir les corriger
     document.getElementById('sexe').value = data.sexe;
     document.getElementById('age_cat').value = data.age_cat;
     document.getElementById('instruction').value = data.instruction;
@@ -211,16 +112,65 @@ function editRow(index) {
     document.getElementById('x6').value = data.x6;
     document.getElementById('suggestions').value = data.suggestions === "Aucune" ? "" : data.suggestions;
 
-    // 2. On supprime l'ancienne version de cette ligne dans la base locale
     localDatabase.splice(index, 1);
-    
-    // 3. On rafraîchit le tableau et on rebascule automatiquement sur l'écran du formulaire
     refreshTable();
     
+    // Basculer sur le formulaire
     surveyForm.classList.remove('hidden');
     tableViewSection.classList.add('hidden');
     btnShowForm.classList.add('active');
     btnToggleTable.classList.remove('active');
-    
-    alert("Les données ont été renvoyées dans le formulaire. Corrigez-les puis cliquez sur 'Valider' pour réenregistrer.");
 }
+
+// Envoi vers Google Sheets
+function sendDataToGoogleSheets(data) {
+    const urlParams = new URLSearchParams(data);
+    fetch(GOOGLE_SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: urlParams.toString()
+    })
+    .then(() => console.log("Données envoyées."))
+    .catch(err => console.error("Erreur d'envoi :", err));
+}
+
+// Navigation de l'interface
+btnToggleTable.addEventListener('click', function() {
+    tableViewSection.classList.remove('hidden');
+    surveyForm.classList.add('hidden');
+    btnToggleTable.classList.add('active');
+    btnShowForm.classList.remove('active');
+});
+
+btnShowForm.addEventListener('click', function(e) {
+    e.preventDefault();
+    surveyForm.classList.remove('hidden');
+    tableViewSection.classList.add('hidden');
+    btnShowForm.classList.add('active');
+    btnToggleTable.classList.remove('active');
+});
+
+// Téléchargement CSV
+btnDownloadCsv.addEventListener('click', function() {
+    if (localDatabase.length === 0) {
+        alert("Aucune donnée à télécharger.");
+        return;
+    }
+    const headers = ["sexe", "age_cat", "instruction", "profession", "revenu_cat", "localisation", "telephone", "y_utilisation", "frequence", "x1", "x2", "x3", "x4", "x5", "x6", "suggestions"];
+    const csvRows = [headers.join(';')];
+
+    for (const row of localDatabase) {
+        const values = headers.map(h => `"${(row[h] || "").toString().replace(/"/g, '""').replace(/\n/g, ' ')}"` );
+        csvRows.push(values.join(';'));
+    }
+
+    const blob = new Blob(["\uFEFF" + csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Collecte_OM_Yatenga_${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+});
