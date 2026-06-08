@@ -90,6 +90,24 @@ function updateCounter() {
     counterDisplay.textContent = localDatabase.length;
 }
 
+// Fonction pour redessiner entièrement le tableau quand une donnée change
+function refreshTable() {
+    tableBody.innerHTML = ""; // On vide le tableau visuel
+    localDatabase.forEach((data, index) => {
+        appendRowToTable(data, index); // On recrée chaque ligne avec son nouvel index
+    });
+    updateCounter(); // On recalcule le total
+}
+
+// Fonction pour redessiner entièrement le tableau quand une donnée change
+function refreshTable() {
+    tableBody.innerHTML = ""; // On vide le tableau visuel
+    localDatabase.forEach((data, index) => {
+        appendRowToTable(data, index); // On recrée chaque ligne avec son nouvel index
+    });
+    updateCounter(); // On recalcule le total
+}
+
 // 4. ACTION : Afficher / Masquer le tableau des données
 btnToggleTable.addEventListener('click', function() {
     tableViewSection.classList.remove('hidden');
