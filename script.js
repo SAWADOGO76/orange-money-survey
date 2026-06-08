@@ -177,3 +177,50 @@ btnDownloadCsv.addEventListener('click', function() {
     link.click();
     document.body.removeChild(link);
 });
+// FONCTION POUR SUPPRIMER UNE LIGNE
+function deleteRow(index) {
+    if (confirm("Êtes-vous sûr de vouloir supprimer cette ligne de données ?")) {
+        // Supprime 1 élément à partir de la position 'index' dans le tableau JavaScript
+        localDatabase.splice(index, 1); 
+        
+        // On rafraîchit l'affichage pour recalculer les positions et le compteur
+        refreshTable();
+        alert("Ligne supprimée localement.");
+    }
+}
+
+// FONCTION POUR MODIFIER UNE LIGNE
+function editRow(index) {
+    const data = localDatabase[index];
+    
+    // 1. On remet les valeurs de la ligne dans le formulaire pour pouvoir les corriger
+    document.getElementById('sexe').value = data.sexe;
+    document.getElementById('age_cat').value = data.age_cat;
+    document.getElementById('instruction').value = data.instruction;
+    document.getElementById('profession').value = data.profession;
+    document.getElementById('revenu_cat').value = data.revenu_cat;
+    document.getElementById('localisation').value = data.localisation;
+    document.getElementById('telephone').value = data.telephone;
+    document.getElementById('y_utilisation').value = data.y_utilisation;
+    document.getElementById('frequence').value = data.frequence;
+    document.getElementById('x1').value = data.x1;
+    document.getElementById('x2').value = data.x2;
+    document.getElementById('x3').value = data.x3;
+    document.getElementById('x4').value = data.x4;
+    document.getElementById('x5').value = data.x5;
+    document.getElementById('x6').value = data.x6;
+    document.getElementById('suggestions').value = data.suggestions === "Aucune" ? "" : data.suggestions;
+
+    // 2. On supprime l'ancienne version de cette ligne dans la base locale
+    localDatabase.splice(index, 1);
+    
+    // 3. On rafraîchit le tableau et on rebascule automatiquement sur l'écran du formulaire
+    refreshTable();
+    
+    surveyForm.classList.remove('hidden');
+    tableViewSection.classList.add('hidden');
+    btnShowForm.classList.add('active');
+    btnToggleTable.classList.remove('active');
+    
+    alert("Les données ont été renvoyées dans le formulaire. Corrigez-les puis cliquez sur 'Valider' pour réenregistrer.");
+}
