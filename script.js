@@ -1,5 +1,34 @@
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwqym7w-sgurKNmg0ctorgUI1HWVsT9ef1ZSy8QYDMLPw7cSfKtrPFQotId1GunaxOxSw/exec"; // METS TON URL GOOGLE APPS SCRIPT ICI
+// Fonction pour charger automatiquement les données du Google Sheets au démarrage
+window.addEventListener('DOMContentLoaded', () => {
+    // Afficher un message de chargement dans le tableau
+    const tbody = document.querySelector('#tableau-donnees tbody');
+    if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="20" style="text-align:center;">Chargement des données existantes...</td></tr>';
+    }
 
+    // Appel au Google Script pour récupérer les données
+    fetch(GOOGLE_SCRIPT_URL)
+        .then(response => response.json())
+        .then(data => {
+            if (tbody) tbody.innerHTML = ''; // On vide le message de chargement
+            
+            // On suppose que le script renvoie un tableau d'objets
+            if (data && data.length > 0) {
+                data.forEach(ligne => {
+                    // Ici, on appelle la fonction qui ajoute la ligne dans ton tableau
+                    // Note : Assure-toi que le nom de ta fonction correspond à celle de ton code (ex: ajouterLigneTableau)
+                    ajouterLigneAuTableau(ligne); 
+                });
+            } else {
+                if (tbody) tbody.innerHTML = '<tr><td colspan="20" style="text-align:center;">Aucune donnée enregistrée pour le moment.</td></tr>';
+            }
+        })
+        .catch(error => {
+            console.error('Erreur lors du chargement :', error);
+            if (tbody) tbody.innerHTML = '<tr><td colspan="20" style="text-align:center; color:red;">Erreur de connexion au serveur.</td></tr>';
+        });
+});
 let localDatabase = [];
 
 // Éléments du DOM
