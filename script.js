@@ -203,3 +203,63 @@ btnDownloadCsv.addEventListener('click', function() {
     link.click();
     document.body.removeChild(link);
 });
+// Fonction pour charger et afficher automatiquement les données au démarrage
+window.addEventListener('DOMContentLoaded', () => {
+    const tbody = document.querySelector('#tableau-donnees tbody') || document.querySelector('table tbody');
+    
+    if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="20" style="text-align:center; color:#f16e00; font-weight:bold;">Chargement des données existantes...</td></tr>';
+    }
+
+    // Appel au Google Sheets via ton URL App Script
+    fetch(GOOGLE_SCRIPT_URL)
+        .then(response => response.json())
+        .then(data => {
+            if (!tbody) return;
+            tbody.innerHTML = ''; // On efface le message de chargement
+
+            if (data && data.length > 0) {
+                // Parcourir chaque ligne renvoyée par le Google Sheets
+                data.forEach((ligne, index) => {
+                    const row = tbody.insertRow();
+                    
+                    // On extrait toutes les valeurs de la ligne (sauf les en-têtes)
+                    const valeurs = Object.values(ligne);
+                    
+                    // 1. Remplissage des cellules de données
+                    valeurs.forEach(valeur => {
+                        const cell = row.insertCell();
+                        cell.textContent = valeur;
+                    });
+
+                    // 2. Ajout de la colonne Actions avec tes boutons editRow et deleteRow
+                    const cellActions = row.insertCell();
+                    cellActions.style.textAlign = "center";
+                    
+                    // Bouton Modifier (Crayon)
+                    const btnEdit = document.createElement('button');
+                    btnEdit.innerHTML = '✏️';
+                    btnEdit.style.marginRight = '5px';
+                    btnEdit.style.cursor = 'pointer';
+                    btnEdit.onclick = () => editRow(row); // Appelle ta fonction existante
+                    
+                    // Bouton Supprimer (X Rouge)
+                    const btnDelete = document.createElement('button');
+                    btnDelete.innerHTML = '❌';
+                    btnDelete.style.cursor = 'pointer';
+                    btnDelete.onclick = () => deleteRow(row); // Appelle ta fonction existante
+                    
+                    cellActions.appendChild(btnEdit);
+                    cellActions.appendChild(btnDelete);
+                });
+            } else {
+                tbody.innerHTML = '<tr><td colspan="20" style="text-align:center;">Aucune donnée enregistrée pour le moment.</td></tr>';
+            }
+        })
+        .catch(error => {
+            console.error('Erreur lors du chargement initial :', error);
+            if (tbody) {
+                tbody.innerHTML = '<tr><td colspan="20" style="text-align:center; color:red;">Erreur de connexion au serveur de données.</td></tr>';
+            }
+        });
+});
