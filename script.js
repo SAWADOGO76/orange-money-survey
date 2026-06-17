@@ -21,14 +21,14 @@ window.addEventListener('DOMContentLoaded', () => {
     fetch(GOOGLE_SCRIPT_URL)
         .then(response => response.json())
         .then(data => {
-            tableBody.innerHTML = ''; // On vide le message de chargement
+            if (tableBody) tableBody.innerHTML = ''; // On vide le message de chargement
             
             if (data && data.length > 0) {
                 // Remplir la base locale et mettre à jour le tableau
                 localDatabase = data;
                 refreshTable();
             } else {
-                tableBody.innerHTML = '<tr><td colspan="17" style="text-align:center;">Aucune donnée enregistrée pour le moment.</td></tr>';
+                if (tableBody) tableBody.innerHTML = '<tr><td colspan="17" style="text-align:center;">Aucune donnée enregistrée pour le moment.</td></tr>';
             }
         })
         .catch(error => {
@@ -86,7 +86,6 @@ surveyForm.addEventListener('submit', function(e) {
 
 // 3. FONCTIONS DE COMMUNICATION ET DE SAUVEGARDE
 function sendDataToGoogleSheets(data) {
-    // Utilisation de URLSearchParams pour garantir le remplissage complet de toutes les colonnes
     const urlParams = new URLSearchParams(data);
     
     fetch(GOOGLE_SCRIPT_URL, {
@@ -117,7 +116,6 @@ function synchroniserDonneesHorsLigne() {
     
     console.log(`📡 Réseau détecté ! Envoi de ${fileAttente.length} enquête(s) stockée(s) hors-ligne...`);
     
-    // Préparer les envois au bon format pour remplir toutes les colonnes
     let promesses = fileAttente.map(donnees => {
         const urlParams = new URLSearchParams(donnees);
         return fetch(GOOGLE_SCRIPT_URL, {
@@ -132,16 +130,15 @@ function synchroniserDonneesHorsLigne() {
         .then(() => {
             alert(`✅ Formidable ! Les ${fileAttente.length} enquête(s) prises hors-ligne ont été synchronisées avec succès.`);
             localStorage.removeItem('enquetes_hors_ligne');
-            // Recharger proprement pour afficher les nouvelles lignes synchronisées avec l'horodatage serveur
             setTimeout(() => { location.reload(); }, 1000);
         })
         .catch(erreur => console.error("Erreur lors de la synchronisation automatique :", erreur));
 }
 
-// Écouter les changements d'état du réseau (Connexion retrouvée sur le terrain)
+// Écouter les changements d'état du réseau
 window.addEventListener('online', synchroniserDonneesHorsLigne);
 
-// 4. GESTION DU TABLEAU ET DES ACTIONS (MODIFIER / SUPPRIMER)
+// 4. GESTION DU TABLEAU ET DES ACTIONS
 function appendRowToTable(data, index) {
     const row = document.createElement('tr');
     row.id = `row-${index}`;
@@ -214,7 +211,6 @@ function editRow(index) {
     localDatabase.splice(index, 1);
     refreshTable();
     
-    // Basculer automatiquement sur la vue formulaire pour corriger
     surveyForm.classList.remove('hidden');
     tableViewSection.classList.add('hidden');
     btnShowForm.classList.add('active');
@@ -222,41 +218,47 @@ function editRow(index) {
 }
 
 // 5. NAVIGATION DE L'INTERFACE
-btnToggleTable.addEventListener('click', function() {
-    tableViewSection.classList.remove('hidden');
-    surveyForm.classList.add('hidden');
-    btnToggleTable.classList.add('active');
-    btnShowForm.classList.remove('active');
-});
+if (btnToggleTable) {
+    btnToggleTable.addEventListener('click', function() {
+        tableViewSection.classList.remove('hidden');
+        surveyForm.classList.add('hidden');
+        btnToggleTable.classList.add('active');
+        btnShowForm.classList.remove('active');
+    });
+}
 
-btnShowForm.addEventListener('click', function(e) {
-    e.preventDefault();
-    surveyForm.classList.remove('hidden');
-    tableViewSection.classList.add('hidden');
-    btnShowForm.classList.add('active');
-    btnToggleTable.classList.remove('active');
-});
+if (btnShowForm) {
+    btnShowForm.addEventListener('click', function(e) {
+        e.preventDefault();
+        surveyForm.classList.remove('hidden');
+        tableViewSection.classList.add('hidden');
+        btnShowForm.classList.add('active');
+        btnToggleTable.classList.remove('active');
+    });
+}
 
-// 6. TÉLÉCHARGEMENT CSV SECURISÉ
-btnDownloadCsv.addEventListener('click', function() {
-    if (localDatabase.length === 0) {
-        alert("Aucune donnée à télécharger.");
-        return;
-    }
-    const headers = ["sexe", "age_cat", "instruction", "profession", "revenu_cat", "localisation", "telephone", "y_utilisation", "frequence", "x1", "x2", "x3", "x4", "x5", "x6", "suggestions"];
-    const csvRows = [headers.join(';')];
+// 6. TÉLÉCHARGEMENT CSV
+if (btnDownloadCsv) {
+    btnDownloadCsv.addEventListener('click', function() {
+        if (localDatabase.length === 0) {
+            alert("Aucune donnée à télécharger.");
+            return;
+        }
+        const headers = ["sexe", "age_cat", "instruction", "profession", "revenu_cat", "localisation", "telephone", "y_utilisation", "frequence", "x1", "x2", "x3", "x4", "x5", "x6", "suggestions"];
+        const csvRows = [headers.join(';')];
 
-    for (const row of localDatabase) {
-        const values = headers.map(h => `"${(row[h] || "").toString().replace(/"/g, '""').replace(/\n/g, ' ')}"` );
-        csvRows.push(values.join(';'));
-    }
+        for (const row of localDatabase) {
+            const values = headers.map(h => `"${(row[h] || "").toString().replace(/"/g, '""').replace(/\n/g, ' ')}"` );
+            csvRows.push(values.join(';'));
+        }
 
-    const blob = new Blob(["\uFEFF" + csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `Collecte_OM_Yatenga_${new Date().toISOString().slice(0,10)}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-});
+        const blob = new Blob(["\uFEFF" + csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `Collecte_OM_Yatenga_${new Date().toISOString().slice(0,10)}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    });
+}
