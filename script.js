@@ -1,34 +1,5 @@
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwqym7w-sgurKNmg0ctorgUI1HWVsT9ef1ZSy8QYDMLPw7cSfKtrPFQotId1GunaxOxSw/exec"; // METS TON URL GOOGLE APPS SCRIPT ICI
-// Fonction pour charger automatiquement les données du Google Sheets au démarrage
-window.addEventListener('DOMContentLoaded', () => {
-    // Afficher un message de chargement dans le tableau
-    const tbody = document.querySelector('#tableau-donnees tbody');
-    if (tbody) {
-        tbody.innerHTML = '<tr><td colspan="20" style="text-align:center;">Chargement des données existantes...</td></tr>';
-    }
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwqym7w-sgurKNmg0ctorgUI1HWVsT9ef1ZSy8QYDMLPw7cSfKtrPFQotId1GunaxOxSw/exec";
 
-    // Appel au Google Script pour récupérer les données
-    fetch(GOOGLE_SCRIPT_URL)
-        .then(response => response.json())
-        .then(data => {
-            if (tbody) tbody.innerHTML = ''; // On vide le message de chargement
-            
-            // On suppose que le script renvoie un tableau d'objets
-            if (data && data.length > 0) {
-                data.forEach(ligne => {
-                    // Ici, on appelle la fonction qui ajoute la ligne dans ton tableau
-                    // Note : Assure-toi que le nom de ta fonction correspond à celle de ton code (ex: ajouterLigneTableau)
-                    ajouterLigneAuTableau(ligne); 
-                });
-            } else {
-                if (tbody) tbody.innerHTML = '<tr><td colspan="20" style="text-align:center;">Aucune donnée enregistrée pour le moment.</td></tr>';
-            }
-        })
-        .catch(error => {
-            console.error('Erreur lors du chargement :', error);
-            if (tbody) tbody.innerHTML = '<tr><td colspan="20" style="text-align:center; color:red;">Erreur de connexion au serveur.</td></tr>';
-        });
-});
 let localDatabase = [];
 
 // Éléments du DOM
@@ -40,11 +11,44 @@ const btnToggleTable = document.getElementById('btn-toggle-table');
 const btnShowForm = document.getElementById('btn-show-form');
 const btnDownloadCsv = document.getElementById('btn-download-csv');
 
-// Soumission du formulaire (Version finale avec envoi d'origine + secours hors-ligne)
+// 1. CHARGEMENT AUTOMATIQUE DES DONNÉES AU DÉMARRAGE
+window.addEventListener('DOMContentLoaded', () => {
+    if (tableBody) {
+        tableBody.innerHTML = '<tr><td colspan="17" style="text-align:center; color:#f16e00; font-weight:bold;">Chargement des données existantes...</td></tr>';
+    }
+
+    // Appel au Google Script (doGet) pour récupérer l'historique
+    fetch(GOOGLE_SCRIPT_URL)
+        .then(response => response.json())
+        .then(data => {
+            tableBody.innerHTML = ''; // On vide le message de chargement
+            
+            if (data && data.length > 0) {
+                // Remplir la base locale et mettre à jour le tableau
+                localDatabase = data;
+                refreshTable();
+            } else {
+                tableBody.innerHTML = '<tr><td colspan="17" style="text-align:center;">Aucune donnée enregistrée pour le moment.</td></tr>';
+            }
+        })
+        .catch(error => {
+            console.error('Erreur lors du chargement initial :', error);
+            if (tableBody) {
+                tableBody.innerHTML = '<tr><td colspan="17" style="text-align:center; color:red; font-weight:bold;">Erreur de connexion au serveur de données.</td></tr>';
+            }
+        });
+
+    // Lancer une synchronisation automatique au démarrage si l'appareil est connecté
+    if (navigator.onLine) {
+        synchroniserDonneesHorsLigne();
+    }
+});
+
+// 2. SOUMISSION DU FORMULAIRE
 surveyForm.addEventListener('submit', function(e) {
     e.preventDefault();
 
-    // 1. Récupération des données du formulaire
+    // Récupération des données du formulaire
     const formData = {
         sexe: document.getElementById('sexe').value,
         age_cat: document.getElementById('age_cat').value,
@@ -64,106 +68,102 @@ surveyForm.addEventListener('submit', function(e) {
         suggestions: document.getElementById('suggestions').value.trim() || "Aucune"
     };
 
-    // 2. Mise à jour immédiate du tableau à l'écran
+    // Ajout immédiat au tableau visuel pour l'enquêteur
     localDatabase.push(formData);
     refreshTable();
 
-    // 3. Choix du mode d'envoi selon la connexion Internet
+    // Routage intelligent selon l'état de la connexion Internet
     if (navigator.onLine) {
-        // EN LIGNE : On utilise ton envoi d'origine qui fonctionne parfaitement
         sendDataToGoogleSheets(formData);
-        alert("Entrée enregistrée et envoyée à Google Sheets avec succès !");
+        alert("Enquête enregistrée et envoyée à Google Sheets avec succès !");
     } else {
-        // HORS-LIGNE : Sécurité terrain
         mettreEnFileDattenteHorsLigne(formData);
     }
 
-    // 4. Réinitialisation du formulaire
+    // Réinitialisation du formulaire pour l'enquête suivante
     surveyForm.reset();
 });
 
-// --- TON ANCIENNE FONCTION D'ORIGINE (QUI REMPLIT BIEN TOUTES LES COLONNES) ---
-function sendDataToGoogleSheets(donnees) {
-    fetch(GOOGLE_SCRIPT_URL, {
-        method: "POST",
-        mode: "no-cors",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(donnees),
-    })
-    .then(() => {
-        console.log("Données transmises avec succès.");
-    })
-    .catch((error) => {
-        console.error("Erreur d'envoi direct, bascule en mode local :", error);
-        mettreEnFileDattenteHorsLigne(donnees);
-    });
-}
-
-// --- FONCTION DE STOCKAGE TEMPORAIRE SUR LE TÉLÉPHONE ---
-function mettreEnFileDattenteHorsLigne(donnees) {
-    let fileAttente = JSON.parse(localStorage.getItem('enquetes_hors_ligne')) || [];
-    fileAttente.push(donnees);
-    localStorage.setItem('enquetes_hors_ligne', JSON.stringify(fileAttente));
+// 3. FONCTIONS DE COMMUNICATION ET DE SAUVEGARDE
+function sendDataToGoogleSheets(data) {
+    // Utilisation de URLSearchParams pour garantir le remplissage complet de toutes les colonnes
+    const urlParams = new URLSearchParams(data);
     
-    alert("⚠️ Mode hors-ligne actif : L'enquête est sauvegardée localement sur l'appareil. Elle sera envoyée dès que tu auras du réseau.");
-}
-
-    // 4. Réinitialisation du formulaire
-    surveyForm.reset();
-});
-
-// --- EN DESSOUS, TU AJOUTES CES DEUX FONCTIONS COMPLÉMENTAIRES ---
-
-// Fonction pour sauvegarder en mémoire locale (Hors-ligne)
-function mettreEnFileDattenteHorsLigne(donnees) {
-    let fileAttente = JSON.parse(localStorage.getItem('enquetes_hors_ligne')) || [];
-    fileAttente.push(donnees);
-    localStorage.setItem('enquetes_hors_ligne', JSON.stringify(fileAttente));
-    
-    alert("⚠️ Mode hors-ligne : Enquête enregistrée localement dans l'appareil. Elle sera envoyée automatiquement dès le retour d'Internet.");
-}
-
-// Fonction d'envoi vers Google Sheets
-function envoyerVersGoogleSheets(donnees) {
     fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
         mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(donnees)
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: urlParams.toString()
     })
-    .then(() => {
-        console.log("Données synchronisées avec succès avec Google Sheets !");
-    })
-    .catch(erreur => {
-        console.error("Échec de l'envoi direct, sauvegarde locale de secours...", erreur);
-        mettreEnFileDattenteHorsLigne(donnees);
+    .then(() => console.log("Données transmises avec succès à Google Sheets."))
+    .catch(err => {
+        console.error("Échec de l'envoi en direct, bascule en mémoire locale :", err);
+        mettreEnFileDattenteHorsLigne(data);
     });
 }
-// Génération d'une ligne dans le tableau avec les boutons d'action
+
+function mettreEnFileDattenteHorsLigne(donnees) {
+    let fileAttente = JSON.parse(localStorage.getItem('enquetes_hors_ligne')) || [];
+    fileAttente.push(donnees);
+    localStorage.setItem('enquetes_hors_ligne', JSON.stringify(fileAttente));
+    
+    alert("⚠️ Mode hors-ligne actif : L'enquête a été sécurisée localement sur cet appareil. Elle s'enverra toute seule dès le retour d'Internet.");
+}
+
+function synchroniserDonneesHorsLigne() {
+    let fileAttente = JSON.parse(localStorage.getItem('enquetes_hors_ligne')) || [];
+    
+    if (fileAttente.length === 0) return;
+    
+    console.log(`📡 Réseau détecté ! Envoi de ${fileAttente.length} enquête(s) stockée(s) hors-ligne...`);
+    
+    // Préparer les envois au bon format pour remplir toutes les colonnes
+    let promesses = fileAttente.map(donnees => {
+        const urlParams = new URLSearchParams(donnees);
+        return fetch(GOOGLE_SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: urlParams.toString()
+        });
+    });
+    
+    Promise.all(promesses)
+        .then(() => {
+            alert(`✅ Formidable ! Les ${fileAttente.length} enquête(s) prises hors-ligne ont été synchronisées avec succès.`);
+            localStorage.removeItem('enquetes_hors_ligne');
+            // Recharger proprement pour afficher les nouvelles lignes synchronisées avec l'horodatage serveur
+            setTimeout(() => { location.reload(); }, 1000);
+        })
+        .catch(erreur => console.error("Erreur lors de la synchronisation automatique :", erreur));
+}
+
+// Écouter les changements d'état du réseau (Connexion retrouvée sur le terrain)
+window.addEventListener('online', synchroniserDonneesHorsLigne);
+
+// 4. GESTION DU TABLEAU ET DES ACTIONS (MODIFIER / SUPPRIMER)
 function appendRowToTable(data, index) {
     const row = document.createElement('tr');
     row.id = `row-${index}`;
     
-    const cleanSuggestions = data.suggestions.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const cleanSuggestions = (data.suggestions || "Aucune").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     
     row.innerHTML = `
-        <td>${data.sexe}</td>
-        <td>${data.age_cat}</td>
-        <td>${data.instruction}</td>
-        <td>${data.profession}</td>
-        <td>${data.revenu_cat}</td>
-        <td>${data.localisation}</td>
-        <td>${data.telephone}</td>
-        <td><strong>${data.y_utilisation}</strong></td>
-        <td>${data.frequence}</td>
-        <td>${data.x1}/5</td>
-        <td>${data.x2}/5</td>
-        <td>${data.x3}/5</td>
-        <td>${data.x4}/5</td>
-        <td>${data.x5}/5</td>
-        <td>${data.x6}/5</td>
+        <td>${data.sexe || ''}</td>
+        <td>${data.age_cat || ''}</td>
+        <td>${data.instruction || ''}</td>
+        <td>${data.profession || ''}</td>
+        <td>${data.revenu_cat || ''}</td>
+        <td>${data.localisation || ''}</td>
+        <td>${data.telephone || ''}</td>
+        <td><strong>${data.y_utilisation || ''}</strong></td>
+        <td>${data.frequence || ''}</td>
+        <td>${data.x1 || 0}/5</td>
+        <td>${data.x2 || 0}/5</td>
+        <td>${data.x3 || 0}/5</td>
+        <td>${data.x4 || 0}/5</td>
+        <td>${data.x5 || 0}/5</td>
+        <td>${data.x6 || 0}/5</td>
         <td class="text-truncate" title="${cleanSuggestions}">${cleanSuggestions}</td>
         <td>
             <button type="button" style="background:none; border:none; cursor:pointer; font-size:16px;" onclick="editRow(${index})">✏️</button>
@@ -173,16 +173,17 @@ function appendRowToTable(data, index) {
     tableBody.appendChild(row);
 }
 
-// Rafraîchir l'affichage complet du tableau
 function refreshTable() {
+    if (!tableBody) return;
     tableBody.innerHTML = "";
     localDatabase.forEach((data, index) => {
         appendRowToTable(data, index);
     });
-    counterDisplay.textContent = localDatabase.length;
+    if (counterDisplay) {
+        counterDisplay.textContent = localDatabase.length;
+    }
 }
 
-// Action de suppression
 function deleteRow(index) {
     if (confirm("Voulez-vous vraiment supprimer cette ligne ?")) {
         localDatabase.splice(index, 1);
@@ -190,7 +191,6 @@ function deleteRow(index) {
     }
 }
 
-// Action de modification
 function editRow(index) {
     const data = localDatabase[index];
     
@@ -214,27 +214,14 @@ function editRow(index) {
     localDatabase.splice(index, 1);
     refreshTable();
     
-    // Basculer sur le formulaire
+    // Basculer automatiquement sur la vue formulaire pour corriger
     surveyForm.classList.remove('hidden');
     tableViewSection.classList.add('hidden');
     btnShowForm.classList.add('active');
     btnToggleTable.classList.remove('active');
 }
 
-// Envoi vers Google Sheets
-function sendDataToGoogleSheets(data) {
-    const urlParams = new URLSearchParams(data);
-    fetch(GOOGLE_SCRIPT_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: urlParams.toString()
-    })
-    .then(() => console.log("Données envoyées."))
-    .catch(err => console.error("Erreur d'envoi :", err));
-}
-
-// Navigation de l'interface
+// 5. NAVIGATION DE L'INTERFACE
 btnToggleTable.addEventListener('click', function() {
     tableViewSection.classList.remove('hidden');
     surveyForm.classList.add('hidden');
@@ -250,7 +237,7 @@ btnShowForm.addEventListener('click', function(e) {
     btnToggleTable.classList.remove('active');
 });
 
-// Téléchargement CSV
+// 6. TÉLÉCHARGEMENT CSV SECURISÉ
 btnDownloadCsv.addEventListener('click', function() {
     if (localDatabase.length === 0) {
         alert("Aucune donnée à télécharger.");
@@ -272,102 +259,4 @@ btnDownloadCsv.addEventListener('click', function() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-});
-// Fonction pour charger et afficher automatiquement les données au démarrage
-window.addEventListener('DOMContentLoaded', () => {
-    const tbody = document.querySelector('#tableau-donnees tbody') || document.querySelector('table tbody');
-    
-    if (tbody) {
-        tbody.innerHTML = '<tr><td colspan="20" style="text-align:center; color:#f16e00; font-weight:bold;">Chargement des données existantes...</td></tr>';
-    }
-
-    // Appel au Google Sheets via ton URL App Script
-    fetch(GOOGLE_SCRIPT_URL)
-        .then(response => response.json())
-        .then(data => {
-            if (!tbody) return;
-            tbody.innerHTML = ''; // On efface le message de chargement
-
-            if (data && data.length > 0) {
-                // Parcourir chaque ligne renvoyée par le Google Sheets
-                data.forEach((ligne, index) => {
-                    const row = tbody.insertRow();
-                    
-                    // On extrait toutes les valeurs de la ligne (sauf les en-têtes)
-                    const valeurs = Object.values(ligne);
-                    
-                    // 1. Remplissage des cellules de données
-                    valeurs.forEach(valeur => {
-                        const cell = row.insertCell();
-                        cell.textContent = valeur;
-                    });
-
-                    // 2. Ajout de la colonne Actions avec tes boutons editRow et deleteRow
-                    const cellActions = row.insertCell();
-                    cellActions.style.textAlign = "center";
-                    
-                    // Bouton Modifier (Crayon)
-                    const btnEdit = document.createElement('button');
-                    btnEdit.innerHTML = '✏️';
-                    btnEdit.style.marginRight = '5px';
-                    btnEdit.style.cursor = 'pointer';
-                    btnEdit.onclick = () => editRow(row); // Appelle ta fonction existante
-                    
-                    // Bouton Supprimer (X Rouge)
-                    const btnDelete = document.createElement('button');
-                    btnDelete.innerHTML = '❌';
-                    btnDelete.style.cursor = 'pointer';
-                    btnDelete.onclick = () => deleteRow(row); // Appelle ta fonction existante
-                    
-                    cellActions.appendChild(btnEdit);
-                    cellActions.appendChild(btnDelete);
-                });
-            } else {
-                tbody.innerHTML = '<tr><td colspan="20" style="text-align:center;">Aucune donnée enregistrée pour le moment.</td></tr>';
-            }
-        })
-        .catch(error => {
-            console.error('Erreur lors du chargement initial :', error);
-            if (tbody) {
-                tbody.innerHTML = '<tr><td colspan="20" style="text-align:center; color:red;">Erreur de connexion au serveur de données.</td></tr>';
-            }
-        });
-});
-// Fonction pour synchroniser les données stockées dès que le réseau revient
-function synchroniserDonneesHorsLigne() {
-    let fileAttente = JSON.parse(localStorage.getItem('enquetes_hors_ligne')) || [];
-    
-    if (fileAttente.length === 0) return; // Rien à synchroniser
-    
-    console.log(`📡 Connexion détectée ! Synchronisation de ${fileAttente.length} enquête(s)...`);
-    
-    // Envoyer chaque enquête stockée une par une
-    let promesses = fileAttente.map(donnees => {
-        return fetch(GOOGLE_SCRIPT_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(donnees)
-        });
-    });
-    
-    // Une fois que toutes les enquêtes sont envoyées
-    Promise.all(promesses)
-        .then(() => {
-            alert(`✅ Succès : ${fileAttente.length} enquête(s) hors-ligne ont été synchronisées avec Google Sheets !`);
-            localStorage.removeItem('enquetes_hors_ligne'); // On vide la mémoire locale
-        })
-        .catch(erreur => {
-            console.error("Erreur pendant la synchronisation :", erreur);
-        });
-}
-
-// Écouter les changements d'état du réseau de l'appareil
-window.addEventListener('online', synchroniserDonneesHorsLigne);
-
-// Tenter aussi une synchronisation au démarrage si on s'ouvre directement avec du réseau
-window.addEventListener('DOMContentLoaded', () => {
-    if (navigator.onLine) {
-        synchroniserDonneesHorsLigne();
-    }
 });
