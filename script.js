@@ -40,7 +40,7 @@ const btnToggleTable = document.getElementById('btn-toggle-table');
 const btnShowForm = document.getElementById('btn-show-form');
 const btnDownloadCsv = document.getElementById('btn-download-csv');
 
-// Soumission du formulaire (Version intelligente avec mode Hors-ligne intégré)
+// Soumission du formulaire (Version finale avec envoi d'origine + secours hors-ligne)
 surveyForm.addEventListener('submit', function(e) {
     e.preventDefault();
 
@@ -64,19 +64,51 @@ surveyForm.addEventListener('submit', function(e) {
         suggestions: document.getElementById('suggestions').value.trim() || "Aucune"
     };
 
-    // 2. Mise à jour immédiate du tableau visuel (comme avant)
+    // 2. Mise à jour immédiate du tableau à l'écran
     localDatabase.push(formData);
     refreshTable();
 
-    // 3. Gestion intelligente de l'envoi selon la connexion Internet
+    // 3. Choix du mode d'envoi selon la connexion Internet
     if (navigator.onLine) {
-        // Si connecté : on envoie à Google Sheets
-        envoyerVersGoogleSheets(formData);
-        alert("Entrée enregistrée et envoyée au serveur avec succès !");
+        // EN LIGNE : On utilise ton envoi d'origine qui fonctionne parfaitement
+        sendDataToGoogleSheets(formData);
+        alert("Entrée enregistrée et envoyée à Google Sheets avec succès !");
     } else {
-        // Si hors-ligne : on sauvegarde dans la mémoire du téléphone
+        // HORS-LIGNE : Sécurité terrain
         mettreEnFileDattenteHorsLigne(formData);
     }
+
+    // 4. Réinitialisation du formulaire
+    surveyForm.reset();
+});
+
+// --- TON ANCIENNE FONCTION D'ORIGINE (QUI REMPLIT BIEN TOUTES LES COLONNES) ---
+function sendDataToGoogleSheets(donnees) {
+    fetch(GOOGLE_SCRIPT_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(donnees),
+    })
+    .then(() => {
+        console.log("Données transmises avec succès.");
+    })
+    .catch((error) => {
+        console.error("Erreur d'envoi direct, bascule en mode local :", error);
+        mettreEnFileDattenteHorsLigne(donnees);
+    });
+}
+
+// --- FONCTION DE STOCKAGE TEMPORAIRE SUR LE TÉLÉPHONE ---
+function mettreEnFileDattenteHorsLigne(donnees) {
+    let fileAttente = JSON.parse(localStorage.getItem('enquetes_hors_ligne')) || [];
+    fileAttente.push(donnees);
+    localStorage.setItem('enquetes_hors_ligne', JSON.stringify(fileAttente));
+    
+    alert("⚠️ Mode hors-ligne actif : L'enquête est sauvegardée localement sur l'appareil. Elle sera envoyée dès que tu auras du réseau.");
+}
 
     // 4. Réinitialisation du formulaire
     surveyForm.reset();
