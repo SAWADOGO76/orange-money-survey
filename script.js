@@ -17,14 +17,19 @@ window.addEventListener('DOMContentLoaded', () => {
         tableBody.innerHTML = '<tr><td colspan="17" style="text-align:center; color:#f16e00; font-weight:bold;">Chargement des données existantes...</td></tr>';
     }
 
-    // Appel au Google Script (doGet) pour récupérer l'historique
-    fetch(GOOGLE_SCRIPT_URL)
-        .then(response => response.json())
+    // Appel au Google Script (doGet) pour récupérer l'historique avec contournement CORS
+    fetch(GOOGLE_SCRIPT_URL, {
+        method: 'GET',
+        redirect: 'follow'
+    })
+        .then(response => {
+            if (!response.ok) throw new Error("Erreur réseau lors du chargement");
+            return response.json();
+        })
         .then(data => {
             if (tableBody) tableBody.innerHTML = ''; // On vide le message de chargement
             
             if (data && data.length > 0) {
-                // Remplir la base locale et mettre à jour le tableau
                 localDatabase = data;
                 refreshTable();
             } else {
@@ -68,11 +73,11 @@ surveyForm.addEventListener('submit', function(e) {
         suggestions: document.getElementById('suggestions').value.trim() || "Aucune"
     };
 
-    // Ajout immédiat au tableau visuel pour l'enquêteur
+    // Ajout immédiat au tableau visuel pour l'enquêteur (Fonctionne hors-ligne)
     localDatabase.push(formData);
     refreshTable();
 
-    // Routage intelligent selon l'état de la connexion Internet
+    // Routage intelligent selon la connexion Internet
     if (navigator.onLine) {
         sendDataToGoogleSheets(formData);
         alert("Enquête enregistrée et envoyée à Google Sheets avec succès !");
@@ -84,15 +89,13 @@ surveyForm.addEventListener('submit', function(e) {
     surveyForm.reset();
 });
 
-// 3. FONCTIONS DE COMMUNICATION ET DE SAUVEGARDE
+// 3. FONCTIONS DE COMMUNICATION ET DE SAUVEGARDE (FORMAT JSON EN NO-CORS)
 function sendDataToGoogleSheets(data) {
-    const urlParams = new URLSearchParams(data);
-    
     fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
         mode: 'no-cors',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: urlParams.toString()
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data) // Retour au format JSON d'origine qui remplit bien tes colonnes
     })
     .then(() => console.log("Données transmises avec succès à Google Sheets."))
     .catch(err => {
@@ -116,13 +119,13 @@ function synchroniserDonneesHorsLigne() {
     
     console.log(`📡 Réseau détecté ! Envoi de ${fileAttente.length} enquête(s) stockée(s) hors-ligne...`);
     
+    // Envoyer chaque enquête au format JSON attendu par ton script Google
     let promesses = fileAttente.map(donnees => {
-        const urlParams = new URLSearchParams(donnees);
         return fetch(GOOGLE_SCRIPT_URL, {
             method: 'POST',
             mode: 'no-cors',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: urlParams.toString()
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(donnees)
         });
     });
     
@@ -130,15 +133,16 @@ function synchroniserDonneesHorsLigne() {
         .then(() => {
             alert(`✅ Formidable ! Les ${fileAttente.length} enquête(s) prises hors-ligne ont été synchronisées avec succès.`);
             localStorage.removeItem('enquetes_hors_ligne');
+            // Recharger proprement pour mettre à jour l'historique visuel
             setTimeout(() => { location.reload(); }, 1000);
         })
         .catch(erreur => console.error("Erreur lors de la synchronisation automatique :", erreur));
 }
 
-// Écouter les changements d'état du réseau
+// Écouter le retour du réseau (ex: sortie de zone blanche sur le terrain)
 window.addEventListener('online', synchroniserDonneesHorsLigne);
 
-// 4. GESTION DU TABLEAU ET DES ACTIONS
+// 4. GESTION DU TABLEAU VISUEL
 function appendRowToTable(data, index) {
     const row = document.createElement('tr');
     row.id = `row-${index}`;
@@ -249,16 +253,4 @@ if (btnDownloadCsv) {
 
         for (const row of localDatabase) {
             const values = headers.map(h => `"${(row[h] || "").toString().replace(/"/g, '""').replace(/\n/g, ' ')}"` );
-            csvRows.push(values.join(';'));
-        }
-
-        const blob = new Blob(["\uFEFF" + csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `Collecte_OM_Yatenga_${new Date().toISOString().slice(0,10)}.csv`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    });
-}
+            csvRows.push(values.join
