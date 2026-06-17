@@ -40,10 +40,11 @@ const btnToggleTable = document.getElementById('btn-toggle-table');
 const btnShowForm = document.getElementById('btn-show-form');
 const btnDownloadCsv = document.getElementById('btn-download-csv');
 
-// Soumission du formulaire
+// Soumission du formulaire (Version intelligente avec mode Hors-ligne intégré)
 surveyForm.addEventListener('submit', function(e) {
     e.preventDefault();
 
+    // 1. Récupération des données du formulaire
     const formData = {
         sexe: document.getElementById('sexe').value,
         age_cat: document.getElementById('age_cat').value,
@@ -63,14 +64,51 @@ surveyForm.addEventListener('submit', function(e) {
         suggestions: document.getElementById('suggestions').value.trim() || "Aucune"
     };
 
+    // 2. Mise à jour immédiate du tableau visuel (comme avant)
     localDatabase.push(formData);
     refreshTable();
-    sendDataToGoogleSheets(formData);
 
+    // 3. Gestion intelligente de l'envoi selon la connexion Internet
+    if (navigator.onLine) {
+        // Si connecté : on envoie à Google Sheets
+        envoyerVersGoogleSheets(formData);
+        alert("Entrée enregistrée et envoyée au serveur avec succès !");
+    } else {
+        // Si hors-ligne : on sauvegarde dans la mémoire du téléphone
+        mettreEnFileDattenteHorsLigne(formData);
+    }
+
+    // 4. Réinitialisation du formulaire
     surveyForm.reset();
-    alert("Entrée enregistrée avec succès !");
 });
 
+// --- EN DESSOUS, TU AJOUTES CES DEUX FONCTIONS COMPLÉMENTAIRES ---
+
+// Fonction pour sauvegarder en mémoire locale (Hors-ligne)
+function mettreEnFileDattenteHorsLigne(donnees) {
+    let fileAttente = JSON.parse(localStorage.getItem('enquetes_hors_ligne')) || [];
+    fileAttente.push(donnees);
+    localStorage.setItem('enquetes_hors_ligne', JSON.stringify(fileAttente));
+    
+    alert("⚠️ Mode hors-ligne : Enquête enregistrée localement dans l'appareil. Elle sera envoyée automatiquement dès le retour d'Internet.");
+}
+
+// Fonction d'envoi vers Google Sheets
+function envoyerVersGoogleSheets(donnees) {
+    fetch(GOOGLE_SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(donnees)
+    })
+    .then(() => {
+        console.log("Données synchronisées avec succès avec Google Sheets !");
+    })
+    .catch(erreur => {
+        console.error("Échec de l'envoi direct, sauvegarde locale de secours...", erreur);
+        mettreEnFileDattenteHorsLigne(donnees);
+    });
+}
 // Génération d'une ligne dans le tableau avec les boutons d'action
 function appendRowToTable(data, index) {
     const row = document.createElement('tr');
@@ -262,4 +300,42 @@ window.addEventListener('DOMContentLoaded', () => {
                 tbody.innerHTML = '<tr><td colspan="20" style="text-align:center; color:red;">Erreur de connexion au serveur de données.</td></tr>';
             }
         });
+});
+// Fonction pour synchroniser les données stockées dès que le réseau revient
+function synchroniserDonneesHorsLigne() {
+    let fileAttente = JSON.parse(localStorage.getItem('enquetes_hors_ligne')) || [];
+    
+    if (fileAttente.length === 0) return; // Rien à synchroniser
+    
+    console.log(`📡 Connexion détectée ! Synchronisation de ${fileAttente.length} enquête(s)...`);
+    
+    // Envoyer chaque enquête stockée une par une
+    let promesses = fileAttente.map(donnees => {
+        return fetch(GOOGLE_SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(donnees)
+        });
+    });
+    
+    // Une fois que toutes les enquêtes sont envoyées
+    Promise.all(promesses)
+        .then(() => {
+            alert(`✅ Succès : ${fileAttente.length} enquête(s) hors-ligne ont été synchronisées avec Google Sheets !`);
+            localStorage.removeItem('enquetes_hors_ligne'); // On vide la mémoire locale
+        })
+        .catch(erreur => {
+            console.error("Erreur pendant la synchronisation :", erreur);
+        });
+}
+
+// Écouter les changements d'état du réseau de l'appareil
+window.addEventListener('online', synchroniserDonneesHorsLigne);
+
+// Tenter aussi une synchronisation au démarrage si on s'ouvre directement avec du réseau
+window.addEventListener('DOMContentLoaded', () => {
+    if (navigator.onLine) {
+        synchroniserDonneesHorsLigne();
+    }
 });
